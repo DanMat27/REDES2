@@ -1,0 +1,78 @@
+# Práctica 1 - Servidor Web
+
+En el presente documento pasaremos a explicar todo lo relacionado con el desarrollo de la práctica 1 de la asignatura REDES 2.
+
+
+## Introducción
+El objetivo principal de la práctica 1 era desarrollar e implementar un servidor web. Para ello, después de repasar la teoría de la asignatura, decidimos implementar un servidor web basado en el estándar [HTTP/1.1](https://www.ietf.org/rfc/rfc2616.txt). Mientras implementábamos el servidor, teníamos que ir probando parte a parte el código, no se puede llegar al final de la implementación del servidor al completo y probarlo todo de un solo golpe ya que es muy difícil tratar los errores de esa manera. Primero realizamos pruebas más sencillas usando el comando [curl](https://curl.haxx.se/docs/httpscripting.html) y luego, una vez ya teníamos más código desarrollado, comenzamos a realizar pruebas con navegadores. Cabe destacar que las primeras líneas de código y pruebas que realizamos estaban basadas en parte en el código de creación de servidores dado en el moodle de la asignatura.
+
+Después de este pequeño resumen de lo que hemos hecho en la práctica (implementar y probar un servidor web en lenguaje c) es hora de explicar el desarrollo técnico de nuestra implementación.
+
+## Desarrollo técnico
+Nuestro servidor web contiene una estructura formada por una carpeta data, una carpeta includes, una carpeta obj, una carpeta lib, una carpeta scripts, una carpeta src, un fichero .gitignore, un makefile y un fichero readme.md. Aquí mostramos un resumen de lo que hemos usado en nuestra implementación, no tiene porque estar en el git por razones que explicamos a continuación:
+
+Contenido de la práctica | ¿Para qué sirve?
+------------------------ | ----------------
+/data | Datos e información usados en el servidor
+/includes | Ficheros .h usados en el servidor
+/lib | Librerías .a usadas en el servidor
+/obj | Ficheros .o usados en el servidor
+/scripts | Scripts usados en el servidor
+/src | Ficheros fuente .c que implementan el servidor
+.gitignore | Fichero para no subir determinados ficheros al servidor
+Makefile | Makefile que automatiza la compilación y generación de ficheros para el correcto uso del servidor
+README.md | Fichero con información extra de la práctica
+server | Ejecutable que se crea al usar el Makefile
+
+Habrán carpetas como la carpeta lib que no aparezcan en el git porque estas se generán con el makefile proporcionado y porque no se nos pidió subir ningún fichero precompilado al mismo git. En la carpeta lib se guardan las librerías de la aplicación, concretamente la librería generada por threads.c. 
+
+La carpeta obj tampoco aparecerá porque también se generará con el makefile (además que se borrará también con el propio makefile para no tener ficheros .o guardados). En esta carpeta se guardarán los ficheros .o.
+
+En la carpeta data tenemos una carpeta media, que no aparecerá en el git por su gran tamaño, en la que guardaremos las imágenes usadas para comprobar el correcto funcionamiento de imágenes en nuestro servidor. También tenemos una carpeta scripts que tampoco aparecerá en el git y que usábamos para guardar scripts que nos servían de pruebas también para nuestro servidor. Luego guardamos varios .html para más pruebas y, finalmente un fichero muy importante para nuestro servidor web: el fichero server.conf.
+
+En este último fichero (server.conf) guardamos la siguiente información:
+
+//Fichero de configuracion
+
+PUERTO=2772
+
+IP=0.0.0.0
+
+CLIENTES=16
+
+SERVER_ROUTE=data
+
+SIGNATURE=Leugim_2.7
+
+HTTP_VERSION=1
+
+Esta información indica el puerto en el que está escuchando nuestro server es el 2772, la ip de nuestro server es la 0.0.0.0, el número de clientes que permite es 16, la carpeta en la que se guardan los datos que ofrece y almacena el server la carpeta dat, la firma del servidor es Leugim_2.7 y la versión HTTP usada es la 1.
+
+En la carpeta includes se encuentran los ficheros .h usados en la práctica. Esto es un resumen de lo que encontramos en dicha carpeta:
+
+Ficheros | ¿Para que sirve?
+-------- | ----------------
+picohttpparser.h | Este .h fue usado para probar parte de la funcionalidad de nuestro servidor
+server_functions.h | En este .h se encuentra la definición de todas las funciones usadas para el envío y procesamiento de información a nuestro servidor
+server.h | En este .h se encuentra la definición de toda la gestión de red dee bajo nivel de nuestro servidor
+threads.h | En este .h se encuentra la definición de las funciones usadas para tratar a los usuarios del servidor con hilos
+
+Para entender la implementación de nuestro servidor vamos a pasar a explicar los ficheros fuentes .c que se encuentran en nuestra carpeta /src. Lo primero de todo, hay que mencionar el server.c, ya que este fichero es el que funciona como main de la aplicación, del servidor. En server.c, leemos nuestro fichero server.conf con la información necesaria de nuestro servidor y en función de lo leído se ejecutan las órdenes necesarias para controlar toda la gestión de red a bajo nivel: sockets, binds, ... . Hay que mencionar que en el server.h se encuentran 3 estructuras con la configuración del servidor, la estructura de los mensajes con los que se trabaja y un pequeño control del servidor.
+
+En server.c se llama a la función crear_hilo() que se encuentra implementada en el fichero threads.c (fichero compilado y guardado en una librería de /lib). Esta función crea los hilos necesarios para atender a los clientes que usen el servidor. A su vez, cuando se crea el hilo, se llama a la función resolver_peticion(), también en threads.c, que se encarga de que los hilos procesen las peticiones de los clientes llamando a la función procesar_peticion() del fichero server_functions.c.
+
+En el fichero server_functions.c se encuentran las funciones relacionadas con la configuración, el trabajo con la memoria y el procesamiento de peticiones de usuarios del servidor. La función procesar_peticion() llamada por un hilo desde threads.c se encarga de leer la peticion de un usuario y en función de los parámetros que lee llamará a una función o a otra. Con esto nos referimos a que si la petición de un usuario lleva un GET en la cabecera se ejecutará y generará un mensaje distinto que el que se haría si se hubiese leído un OPTIONS. Por lo tanto, procesar_peticion() se encargará de leer la petición del usuario, ir creando el mensaje de respuesta y llamar a las funciones correpondientes para el correcto trato de la respuesta. Es por esto último que destacan las funciones (en el mismo fichero) de procesar_get_post() para peticiones GET y POST y procesa_options() para procesar peticiones OPTIONS. 
+
+Todo esto es la funcionalidad más básica de nuestro código, para ver como hemos implementado detalles más concretos como, por ejemplo, como hemos dividido y enviado las respuestas a trozos (si las respuestas eran grandes) o como hemos leído y creado cabeceras se puede ver mejor y con más detalle en los ficheros .c (/scr) y .h (/includes) de la práctica.
+
+Una última cosa en cuanto al desarrollo de la práctica. Para ejecutar correctamente la práctica hay que usar lógicamente el Makefile. Con hacer make ya se generarán todos los ficheros necesarios para la ejecución del servidor. El ejecutable del servidor se llama server y para ejecutarlo lógicamente hay que poner ./server en la terminal (y darle permisos de ejecución si es necesario). Para probar que el servidor funciona se puede usar el comando curl o un navegador enviando la petición correspondiente a la ip 0.0.0.0 y puerto 2772. Al enviar la perición se podrá ver como trabaja el servidor visualizando la terminal donde se ha ejecutado el ./server, para terminar con su ejecución se necesita pulsar Ctrl+c. Si se quiere buscar un fichero determinado en nuestro servidor habrá que seguir la ruta correspondiente a nuestros ficheros: http://0.0.0.0:2772/ruta_del_fichero_dentro_de_la_carpeta_data.
+
+## Conclusiones técnicas
+En cuanto a conclusiones técnicas se refiere, los principales problemas encontrados han sido con la lectura y el envío de mensajes. Con la lectura, tuvimos problemas al principio con las funciones que servían para leer las propias peticiones. Al final a base de prueba y error y consultas por Internet conseguimos leer sin problemas las peticiones de los usuarios. Analizar cada parte de la petición leída y crear los mensajes de respuesta en función de lo leído, no nos dió complicaciones realmente, lo que nos dió fue mucho trabajo. En cuanto al envío de mensajes de respuesta a los usuarios, tuvimos complicaciones con mensajes grandes. No entendíamos por qué no se enviaban bien muchas de las imágenes que se nos daban de prueba hasta que nos centramos en el tamaño de las mismas. El problema estaba en que teníamos que enviar la respuesta por partes debido al gran tamaño de las imágenes, por eso solo se enviaban bien las imágenes que ocupaban poca memoria. Las primeras pruebas que hicimos de envío de mensajes de texto, antes de realizar las pruebas de imágenes, nos dieron problemas por una mezcla de que no leer ni enviar bien los mensajes por el tamaño de la respuesta. Al final nuestro servidor pudo con todo y ahora se lee y recibe todo a la perfección ya reciba el servidor una petición GET, POST o OPTIONS.
+
+Con respecto a otras partes técnicas de la práctica, en general no tuvimos problemas, nos llevó mucho tiempo pero no muchas complicaciones. Tanto el uso de hilos para procesar peticiones de clientes, como la creación de librerías en c (no conocíamos los .a al principio), como el uso de la WIKI entre otras cosas al final simplemente fue informarse y dedicarle tiempo sin muchas complicaciones.
+
+## Conclusiones personales
+Esta práctica ha sido un arma de doble filo porque por un lado está muy bien tener mucha libertad para el aprendizaje y desarrollo de la misma pero por otro lado, al tener otras asignaturas, se convierte en algo difícil de administrar. Cuando se tiene un proyecto como esta práctica en la que hay que informarse mucho para  entender todo el funcionamiento del mismo,  en nuestro caso conocer el protocolo HTTP, conocer detalles del lenguaje c, conocer detalles de la red, conocer detalles del uso de gitlab, ..., se necesita mucha dedicación y tiempo no nos sobraba porque de hecho nos faltaba. Aún así, como acabamos de decir, esto también tiene su parte positiva ya que el aprendizaje es más eficaz que en el caso de que la práctica hubiera sido guiada como ocurre con otras asignaturas.
+
+Con el tema de solo tener una fecha de entrega, no tener mucho tiempo con respecto a otras asignaturas y con el tema de la pandemia del coronavirus que se está viviendo actualmente, también hemos tenido problemas de organización y hemos acabado muy pillados. Con todo esto, aún así hay que quedarse con lo positivo y con lo aprendido en la práctica, ya que conocemos a la perfección la implementación y uso de servidores de una manera básica y eficaz.
